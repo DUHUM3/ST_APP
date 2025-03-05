@@ -53,5 +53,25 @@ class FlightService {
     } else {
       throw Exception('Failed to book flight: ${response.statusCode} - ${response.body}');
     }
+    
+  }
+    // دالة لجلب الرحلات المخفضة
+  static Future<List<Map<String, dynamic>>> fetchDiscountedFlights() async {
+    final response = await http.get(Uri.parse('$baseUrl/flights/discounted'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      return data.map((flight) {
+        return {
+          "id": flight["_id"],
+          "arrivalAirport": flight["arrivalAirport"],
+          "priceEconomy": flight["priceEconomy"],
+          "discount": flight["discount"], // إضافة الخصم إذا كان موجودًا
+        };
+      }).toList();
+    } else {
+      throw Exception('Failed to load discounted flights: ${response.body}');
+    }
   }
 }
+

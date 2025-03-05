@@ -1,21 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'AvailableFlightsScreen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:intl/intl.dart';
 import '../../theme/color.dart';
+import 'flightDetail_screen.dart'; // Ensure this path is correct for your project
 
-class FlightSearchScreen extends StatelessWidget {
+class FlightSearchScreen extends StatefulWidget {
+  const FlightSearchScreen({super.key});
+
+  @override
+  _FlightSearchScreenState createState() => _FlightSearchScreenState();
+}
+
+class _FlightSearchScreenState extends State<FlightSearchScreen> {
   final List<String> yemenCities = [
     "صنعاء", "عدن", "سيئون", "الحديدة", "القاهرة", "برج العرب",
     "شرم الشيخ", "الغردقة", "الأقصر", "أسوان", "مرسى علم",
     "طابا", "سوهاج", "أسيوط", "مطروح", "العريش", "أبو سمبل"
   ];
+
   final List<String> egyptCities = [
     "صنعاء", "عدن", "سيئون", "الحديدة", "القاهرة", "برج العرب",
     "شرم الشيخ", "الغردقة", "الأقصر", "أسوان", "مرسى علم",
     "طابا", "سوهاج", "أسيوط", "مطروح", "العريش", "أبو سمبل"
   ];
 
-  FlightSearchScreen({super.key});
+  String? fromCity;
+  String? toCity;
+  DateTime? departureDate;
+  List<dynamic> flights = [];
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -43,15 +58,31 @@ class FlightSearchScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: _buildSearchSection(context),
+        child: Column(
+          children: [
+            _buildSearchSection(context),
+            const SizedBox(height: 20),
+            if (isLoading)
+              const LinearProgressIndicator(
+                backgroundColor: Colors.grey,
+                color: AppColors.csstomblue,
+              )
+            else if (flights.isNotEmpty)
+              _buildFlightsList()
+            else if (!isLoading && flights.isEmpty)
+              const Center(
+                child: Text(
+                  'لم يتم العثور على رحلات لهذا البحث',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSearchSection(BuildContext context) {
-    String? fromCity;
-    String? toCity;
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -99,7 +130,9 @@ class FlightSearchScreen extends StatelessWidget {
               );
             }).toList(),
             onChanged: (value) {
-              fromCity = value;
+              setState(() {
+                fromCity = value;
+              });
             },
             hint: const Text('اختر مدينة يمنية'),
           ),
@@ -135,55 +168,80 @@ class FlightSearchScreen extends StatelessWidget {
               );
             }).toList(),
             onChanged: (value) {
-              toCity = value;
+              setState(() {
+                toCity = value;
+              });
             },
             hint: const Text('اختر مدينة مصرية'),
           ),
           const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: _buildSearchField(
-                  label: 'تاريخ المغادرة',
-                  icon: Icons.calendar_today,
-                  hint: 'اختر التاريخ',
-                ),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: _buildSearchField(
-                  label: 'عدد الركاب',
-                  icon: Icons.person,
-                  hint: 'اختر العدد',
-                ),
-              ),
-            ],
+          _buildSearchField(
+            label: 'تاريخ المغادرة',
+            icon: Icons.calendar_today,
+            hint: 'اختر التاريخ',
+            onTap: () async {
+              final selectedDate = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (selectedDate != null) {
+                setState(() {
+                  departureDate = selectedDate;
+                });
+              }
+            },
           ),
-          const SizedBox(height: 20),
-          _buildCabinClassSection(),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed: () {
-                if (fromCity == null || toCity == null) {
+              onPressed: () async {
+                if (fromCity == null || toCity == null || departureDate == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('الرجاء اختيار مدينتي المغادرة والوصول'),
+                      content: Text('الرجاء اختيار مدينتي المغادرة والوصول وتاريخ المغادرة'),
                       backgroundColor: Colors.red,
                     ),
                   );
                 } else {
-                  // Navigator.push(
-                    // context,
-                    // MaterialPageRoute(
-                    //   builder: (context) => AvailableFlightsScreen(
-                    //     fromCity: fromCity!,
-                    //     toCity: toCity!,
-                    //   ),
-                    // ),
-                  // );
+                  setState(() {
+                    isLoading = true;
+                  });
+
+                  final formattedDate =
+                      DateFormat('yyyy-MM-dd').format(departureDate!);
+                  final url = Uri.parse(
+                      'https://st-backend-si3x.onrender.com/flights/flights?departureAirport=$fromCity&arrivalAirport=$toCity&departureDate=$formattedDate');
+
+                  final response = await http.get(url);
+
+                  setState(() {
+                    isLoading = false;
+                  });
+
+                  if (response.statusCode == 200) {
+                    final List<dynamic> data = json.decode(response.body);
+                    setState(() {
+                      flights = data;
+                    });
+                  } else if (response.statusCode == 404) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('لم يتم العثور على رحلات لهذا البحث'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('خطأ في الخادم: ${response.statusCode}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -203,6 +261,36 @@ class FlightSearchScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  fromCity = null;
+                  toCity = null;
+                  departureDate = null;
+                  flights = [];
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                elevation: 2,
+              ),
+              child: const Text(
+                'مسح البحث',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -212,99 +300,97 @@ class FlightSearchScreen extends StatelessWidget {
     required String label,
     required IconData icon,
     required String hint,
+    VoidCallback? onTap,
   }) {
-    return TextFormField(
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle:
-            const TextStyle(color: AppColors.csstomblue, fontWeight: FontWeight.w600),
-        prefixIcon: Icon(icon, color: AppColors.csstomblue, size: 22),
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-        filled: true,
-        fillColor: Colors.grey[50],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.csstomblue, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      ),
-    );
-  }
-
-  Widget _buildCabinClassSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'فئة المقصورة',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.csstomblue,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildCabinClassButton(
-                label: 'الاقتصادية',
-                isSelected: true,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildCabinClassButton(
-                label: 'رجال الأعمال',
-                isSelected: false,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildCabinClassButton(
-                label: 'الأولى',
-                isSelected: false,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCabinClassButton({
-    required String label,
-    required bool isSelected,
-  }) {
-    return SizedBox(
-      height: 45,
-      child: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isSelected ? AppColors.csstomblue : Colors.grey[100],
-          elevation: isSelected ? 2 : 0,
-          shape: RoundedRectangleBorder(
+    return GestureDetector(
+      onTap: onTap,
+      child: TextFormField(
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle:
+              const TextStyle(color: AppColors.csstomblue, fontWeight: FontWeight.w600),
+          prefixIcon: Icon(icon, color: AppColors.csstomblue, size: 22),
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+          filled: true,
+          fillColor: Colors.grey[50],
+          border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.white : Colors.grey[600],
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
           ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.csstomblue, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         ),
+        enabled: false,
       ),
     );
   }
+
+ Widget _buildFlightsList() {
+  return ListView.builder(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    itemCount: flights.length,
+    itemBuilder: (context, index) {
+      final flight = flights[index];
+      return Card(
+        margin: const EdgeInsets.symmetric(vertical: 10),
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: ListTile(
+          leading: const Icon(Icons.flight, color: AppColors.csstomblue),
+          title: Text(
+            'رقم الرحلة: ${flight['flightNumber'] ?? 'غير معروف'}',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 5),
+              Text(
+                'مطار المغادرة: ${flight['departureAirport'] ?? 'غير معروف'}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'السعر: \$${flight['priceEconomy'] ?? 'غير معروف'}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.green[700],
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          trailing: const Icon(Icons.arrow_forward, color: AppColors.csstomblue),
+          onTap: () {
+            // الانتقال إلى شاشة التفاصيل عند النقر
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    FlightDetailScreen(flightId: flight["_id"]),
+              ),
+            );
+          },
+        ),
+      );
+    },
+  );
+}
 }
