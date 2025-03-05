@@ -1,0 +1,57 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'TokenManager.dart'; // Assuming TokenManager is in a separate file
+
+class FlightService {
+  static const String baseUrl = "https://st-backend-si3x.onrender.com";
+
+  static Future<List<Map<String, dynamic>>> fetchFlights() async {
+    final response = await http.get(Uri.parse('$baseUrl/flights'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      return data.map((flight) {
+        return {
+          "id": flight["_id"],
+          "arrivalAirport": flight["arrivalAirport"],
+          "priceEconomy": flight["priceEconomy"]
+        };
+      }).toList();
+    } else {
+      throw Exception('Failed to load flights: ${response.body}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchFlightDetails(String id) async {
+    final response = await http.get(Uri.parse('$baseUrl/flights/$id'));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load flight details: ${response.body}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> bookFlight(Map<String, dynamic> bookingData) async {
+    String? accessToken = await TokenManager.getAccessToken();
+
+    if (accessToken == null) {
+      throw Exception('No access token found');
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/bookings'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      },
+      body: jsonEncode(bookingData),
+    );
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body); // Return the response after booking
+    } else {
+      throw Exception('Failed to book flight: ${response.statusCode} - ${response.body}');
+    }
+  }
+}
