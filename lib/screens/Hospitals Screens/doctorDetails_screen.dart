@@ -1,285 +1,301 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:st/theme/color.dart';
+import 'package:intl/intl.dart'; // لتنسيق التاريخ والوقت
 
-import 'hospitalDetails_screen.dart';
+import '../../service/Hospital_service.dart'; // تأكد من أن المسار صحيح
 
-class DoctorDetailsScreen extends StatelessWidget {
-  final Doctor doctor;
+class DoctorDetailsScreen extends StatefulWidget {
+  final String doctorId;
 
-  const DoctorDetailsScreen({super.key, required this.doctor});
+  const DoctorDetailsScreen({super.key, required this.doctorId});
+
+  @override
+  State<DoctorDetailsScreen> createState() => _DoctorDetailsScreenState();
+}
+
+class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
+  Map<String, dynamic>? doctorDetails;
+  List<Map<String, dynamic>>? doctorSchedules;
+  bool isLoading = true;
+  DateTime? selectedDate;
+  TimeOfDay? selectedTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDoctorDetails();
+    _fetchDoctorSchedules();
+  }
+
+  Future<void> _fetchDoctorDetails() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final details = await ApiManager.getDoctorDetails(widget.doctorId);
+      if (details != null) {
+        setState(() {
+          doctorDetails = details;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد بيانات متاحة')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل في تحميل بيانات الطبيب: $e')),
+      );
+    }
+  }
+
+  Future<void> _fetchDoctorSchedules() async {
+    try {
+      final schedules = await ApiManager.getDoctorSchedules(widget.doctorId);
+      if (schedules != null) {
+        setState(() {
+          doctorSchedules = schedules;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد أوقات دوام متاحة')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل في تحميل أوقات الدوام: $e')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null && picked != selectedTime) {
+      setState(() {
+        selectedTime = picked;
+      });
+    }
+  }
+
+  Future<void> _bookAppointment() async {
+    if (selectedDate == null || selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الرجاء اختيار التاريخ والوقت')),
+      );
+      return;
+    }
+
+    final DateTime appointmentDateTime = DateTime(
+      selectedDate!.year,
+      selectedDate!.month,
+      selectedDate!.day,
+      selectedTime!.hour,
+      selectedTime!.minute,
+    );
+
+    final String formattedDateTime = appointmentDateTime.toIso8601String();
+
+    final String? errorMessage = await ApiManager.bookAppointment(
+      doctorId: widget.doctorId,
+      dateTime: formattedDateTime,
+    );
+
+    if (errorMessage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حجز الموعد بنجاح')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (doctorDetails == null) {
+      return const Scaffold(
+        body: Center(child: Text('فشل في تحميل بيانات الطبيب')),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'تفاصيل الطبيب',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: AppColors.red,
-        elevation: 0,
+        title: Text(doctorDetails?['name'] ?? 'تفاصيل الطبيب'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: CircleAvatar(
-                backgroundImage: NetworkImage(doctor.image),
-                radius: 80,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundImage: NetworkImage(doctorDetails?['image'] ??
+                      'https://via.placeholder.com/150'),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: Text(
-                doctor.name,
+              const SizedBox(height: 20),
+              Text(
+                doctorDetails?['name'] ?? 'اسم الطبيب',
                 style: GoogleFonts.poppins(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            Center(
-              child: Text(
-                doctor.specialty,
+              const SizedBox(height: 10),
+              Text(
+                doctorDetails?['specialty'] ?? 'التخصص',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   color: Colors.grey,
                 ),
               ),
-            ),
-            const SizedBox(height: 30),
-            _buildDetailRow('التقييم', doctor.rating.toString(), Icons.star),
-            _buildDetailRow('سنوات الخبرة', '${doctor.experience} سنوات', Icons.work),
-            const SizedBox(height: 30),
-            Text(
-              'نبذة عن الطبيب',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'الدكتور ${doctor.name} هو أحد أفضل الأطباء في مجال ${doctor.specialty}، يتمتع بخبرة تزيد عن ${doctor.experience} سنوات. لديه سجل حافل بالإنجازات والمراجعات الإيجابية من المرضى.',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 30),
-            Text(
-              'المراجعات',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10),
-            _buildReviewCard('محمد علي', 'تجربة رائعة! الدكتور محترف جداً.', 4.5),
-            _buildReviewCard('سارة أحمد', 'شرح واضح وعلاج فعال.', 5.0),
-          ],
-        ),
-      ),
-      // زر تقييم الطبيب
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          onPressed: () {
-            // فتح نموذج التقييم
-            _showRatingDialog(context);
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.red,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          child: Text(
-            'قيم الطبيب',
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.red, size: 24),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReviewCard(String name, String review, double rating) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 15),
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.grey[300],
-                  child: const Icon(Icons.person),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  name,
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const Spacer(),
-                const Icon(Icons.star, color: Colors.amber, size: 20),
-                const SizedBox(width: 5),
-                Text(
-                  rating.toString(),
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              review,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // دالة لعرض نموذج التقييم مع تعليق
-  void _showRatingDialog(BuildContext context) {
-    double rating = 0;
-    TextEditingController commentController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text(
-                'قيم الطبيب',
+              const SizedBox(height: 20),
+              Text(
+                'سنوات الخبرة: ${doctorDetails?['experienceYears'] ?? 'غير معروف'}',
                 style: GoogleFonts.poppins(
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'رقم الهاتف: ${doctorDetails?['phoneNumber'] ?? 'غير معروف'}',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'السيرة الذاتية:',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'كيف تقيم تجربتك مع الدكتور ${doctor.name}؟',
-                    style: GoogleFonts.poppins(),
-                  ),
-                  const SizedBox(height: 20),
-                  // النجوم للتقييم
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return IconButton(
-                        icon: Icon(
-                          index < rating ? Icons.star : Icons.star_border,
-                          color: Colors.amber,
-                          size: 30,
+              const SizedBox(height: 10),
+              Text(
+                doctorDetails?['bio'] ?? 'لا يوجد وصف',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'التقييمات: ${doctorDetails?['averageRating'] ?? 0.0} (${doctorDetails?['totalReviews'] ?? 0} تقييمات)',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'أوقات الدوام:',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (doctorSchedules != null && doctorSchedules!.isNotEmpty)
+                ...doctorSchedules!.map((schedule) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'من ${schedule['startDate']} إلى ${schedule['endDate']}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
                         ),
-                        onPressed: () {
-                          setState(() {
-                            rating = index + 1.0;
-                          });
-                        },
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 20),
-                  // حقل التعليق
-                  TextField(
-                    controller: commentController,
-                    decoration: InputDecoration(
-                      hintText: 'أضف تعليقك هنا...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
                       ),
-                    ),
-                    maxLines: 3,
+                      Text(
+                        'من ${schedule['startTime']} إلى ${schedule['endTime']}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        'مدة الموعد: ${schedule['slotDuration']} دقائق',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  );
+                }).toList()
+              else
+                Text(
+                  'لا توجد أوقات دوام متاحة',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                  ),
+                ),
+              const SizedBox(height: 20),
+              Text(
+                'حجز موعد:',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: () => _selectDate(context),
+                    child: Text(selectedDate == null
+                        ? 'اختر التاريخ'
+                        : DateFormat('yyyy-MM-dd').format(selectedDate!)),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () => _selectTime(context),
+                    child: Text(selectedTime == null
+                        ? 'اختر الوقت'
+                        : selectedTime!.format(context)),
                   ),
                 ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(
-                    'إلغاء',
-                    style: GoogleFonts.poppins(
-                      color: Colors.red,
-                    ),
-                  ),
+              const SizedBox(height: 20),
+              Center(
+                child: ElevatedButton(
+                  onPressed: _bookAppointment,
+                  child: const Text('حجز الموعد'),
                 ),
-                TextButton(
-                  onPressed: () {
-                    // هنا يمكنك إرسال التقييم والتعليق إلى الخادم أو حفظه محليًا
-                    print('التقييم: $rating');
-                    print('التعليق: ${commentController.text}');
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(
-                    'إرسال',
-                    style: GoogleFonts.poppins(
-                      color: AppColors.red,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

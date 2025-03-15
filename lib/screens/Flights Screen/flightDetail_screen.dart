@@ -3,6 +3,18 @@ import '../../service/flight_service.dart';
 import '../../theme/color.dart';
 import 'BookingScreen.dart';
 
+// تعريف ألوان التطبيق الجديدة
+class AppTheme {
+  static const mainGreen = Color(0xFF2E7D32);
+  static const lightGreen = Color(0xFFAED581);
+  static const darkGreen = Color(0xFF1B5E20);
+  static const background = Color(0xFFF5F9F6);
+  static const cardBackground = Colors.white;
+  static const textDark = Color(0xFF263238);
+  static const textLight = Color(0xFF546E7A);
+  static const accentColor = Color(0xFFFF6D00);
+}
+
 class FlightDetailScreen extends StatefulWidget {
   final String flightId;
 
@@ -32,7 +44,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load flight details';
+        _errorMessage = 'فشل في تحميل تفاصيل الرحلة';
         _isLoading = false;
       });
     }
@@ -43,83 +55,238 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
+        backgroundColor: Color(0xFFF5F6FA),
         appBar: AppBar(
-          title: const Text('تفاصيل الرحلة'),
-          backgroundColor: AppColors.csstomblue,
+          title: const Text(
+            'تفاصيل الرحلة',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: AppTheme.mainGreen,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(20),
+            ),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: AppTheme.mainGreen,
+                ),
+              )
             : _errorMessage != null
-                ? Center(child: Text(_errorMessage!))
-                : _flightDetails != null
-                    ? SingleChildScrollView(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildFlightInfo(_flightDetails!),
-                            const SizedBox(height: 20),
-                            _buildPriceInfo(_flightDetails!),
-                            const SizedBox(height: 20),
-                            _buildSeatInfo(_flightDetails!),
-                            const SizedBox(height: 30),
-                            Center(
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => FlightBookingScreen(
-                                        flightId: widget.flightId,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.csstomblue,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 40,
-                                    vertical: 15,
-                                  ),
-                                ),
-                                child: const Text(
-                                  'حجز الرحلة',
-                                  style: TextStyle(fontSize: 18),
-                                ),
-                              ),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: AppTheme.accentColor,
+                          size: 60,
                         ),
-                      )
-                    : const Center(child: Text('لا توجد بيانات')),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: AppTheme.textDark,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: _fetchFlightDetails,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.mainGreen,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('إعادة المحاولة'),
+                        ),
+                      ],
+                    ),
+                  )
+                : _flightDetails != null
+                    ? _buildFlightDetailsContent()
+                    : const Center(
+                        child: Text(
+                          'لا توجد بيانات',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: AppTheme.textDark,
+                          ),
+                        ),
+                      ),
       ),
     );
   }
 
+  Widget _buildFlightDetailsContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildFlightHeader(_flightDetails!),
+          const SizedBox(height: 20),
+          _buildFlightInfo(_flightDetails!),
+          const SizedBox(height: 20),
+          _buildPriceInfo(_flightDetails!),
+          const SizedBox(height: 20),
+          _buildSeatInfo(_flightDetails!),
+          const SizedBox(height: 30),
+          _buildBookingButton(),
+        ],
+      ),
+    );
+  }
+
+ Widget _buildFlightHeader(Map<String, dynamic> flight) {
+  String formatTime(String isoTime) {
+    final dateTime = DateTime.parse(isoTime);
+    return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  return Container(
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [AppTheme.mainGreen, AppTheme.lightGreen],
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+      ),
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: AppTheme.mainGreen.withOpacity(0.3),
+          blurRadius: 10,
+          offset: const Offset(0, 5),
+        ),
+      ],
+    ),
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildAirportColumn('مطار المغادرة', flight['departureAirport']),
+            Column(
+              children: [
+                const Icon(Icons.flight, color: Colors.white, size: 30),
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 10),
+                  height: 1,
+                  width: 80,
+                  color: Colors.white70,
+                ),
+                Text(
+                  'رحلة ${flight['flightNumber']}',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ],
+            ),
+            _buildAirportColumn('مطار الوصول', flight['arrivalAirport']),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildTimeColumn('المغادرة', formatTime(flight['departureTime'])),
+            Text(
+              _getFlightStatus(flight['status']),
+              style: TextStyle(
+                color: _getStatusColor(flight['status']),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            _buildTimeColumn('الوصول', formatTime(flight['arrivalTime'])),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildAirportColumn(String title, String airportName) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+      const SizedBox(height: 5),
+      // Text(
+      //   _getAirportCode(airportName),
+      //   style: const TextStyle(
+      //     color: Colors.white,
+      //     fontSize: 28,
+      //     fontWeight: FontWeight.bold,
+      //   ),
+      // ),
+      Text(airportName, style: const TextStyle(color: Colors.white, fontSize: 16)),
+    ],
+  );
+}
+
+Widget _buildTimeColumn(String title, String time) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+      const SizedBox(height: 5),
+      Text(
+        time,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ],
+  );
+}
+
+
   Widget _buildFlightInfo(Map<String, dynamic> flight) {
     return Card(
-      elevation: 5,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
+        side: BorderSide(color: AppTheme.lightGreen.withOpacity(0.5), width: 1),
       ),
+      color: AppTheme.cardBackground,
       child: Padding(
         padding: const EdgeInsets.all(15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('رقم الرحلة: ${flight['flightNumber']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Text('نوع الطائرة: ${flight['aircraftType']}', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Text('حالة الرحلة: ${flight['status']}', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Text('مطار المغادرة: ${flight['departureAirport']}', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Text('مطار الوصول: ${flight['arrivalAirport']}', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Text('وقت المغادرة: ${flight['departureTime']}', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Text('وقت الوصول: ${flight['arrivalTime']}', style: const TextStyle(fontSize: 16)),
+            const Row(
+              children: [
+                Icon(Icons.info_outline, color: AppTheme.mainGreen, size: 20),
+                SizedBox(width: 10),
+                Text(
+                  'معلومات الرحلة',
+                  style: TextStyle(
+                    fontSize: 18, 
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(color: AppTheme.lightGreen, height: 30),
+            _buildInfoRow('رقم الرحلة', flight['flightNumber']),
+            _buildInfoRow('نوع الطائرة', flight['aircraftType']),
+            _buildInfoRow('حالة الرحلة', flight['status']),
           ],
         ),
       ),
@@ -128,25 +295,35 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
 
   Widget _buildPriceInfo(Map<String, dynamic> flight) {
     return Card(
-      elevation: 5,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
+        side: BorderSide(color: AppTheme.lightGreen.withOpacity(0.5), width: 1),
       ),
+      color: AppTheme.cardBackground,
       child: Padding(
         padding: const EdgeInsets.all(15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'الفئات السعرية',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const Row(
+              children: [
+                Icon(Icons.attach_money, color: AppTheme.mainGreen, size: 20),
+                SizedBox(width: 10),
+                Text(
+                  'الفئات السعرية',
+                  style: TextStyle(
+                    fontSize: 18, 
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            Text('الاقتصادية: \$${flight['priceEconomy']}', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Text('رجال الأعمال: \$${flight['priceBusiness']}', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Text('الأولى: \$${flight['priceFirstClass']}', style: const TextStyle(fontSize: 16)),
+            const Divider(color: AppTheme.lightGreen, height: 30),
+            _buildPriceRow('الاقتصادية', '\$${flight['priceEconomy']}'),
+            _buildPriceRow('رجال الأعمال', '\$${flight['priceBusiness']}'),
+            _buildPriceRow('الأولى', '\$${flight['priceFirstClass']}'),
           ],
         ),
       ),
@@ -155,25 +332,236 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
 
   Widget _buildSeatInfo(Map<String, dynamic> flight) {
     return Card(
-      elevation: 5,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
+        side: BorderSide(color: AppTheme.lightGreen.withOpacity(0.5), width: 1),
       ),
+      color: AppTheme.cardBackground,
       child: Padding(
         padding: const EdgeInsets.all(15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('المقاعد المتاحة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Text('الاقتصادية: ${flight['availableSeatsEconomy']}', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Text('رجال الأعمال: ${flight['availableSeatsBusiness']}', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Text('الأولى: ${flight['availableSeatsFirstClass']}', style: const TextStyle(fontSize: 16)),
+            const Row(
+              children: [
+                Icon(Icons.event_seat, color: AppTheme.mainGreen, size: 20),
+                SizedBox(width: 10),
+                Text(
+                  'المقاعد المتاحة',
+                  style: TextStyle(
+                    fontSize: 18, 
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(color: AppTheme.lightGreen, height: 30),
+            _buildSeatRow('الاقتصادية', flight['availableSeatsEconomy'].toString()),
+            _buildSeatRow('رجال الأعمال', flight['availableSeatsBusiness'].toString()),
+            _buildSeatRow('الأولى', flight['availableSeatsFirstClass'].toString()),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              color: AppTheme.textLight,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              color: AppTheme.textLight,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppTheme.lightGreen.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.mainGreen,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              color: AppTheme.textLight,
+            ),
+          ),
+          Row(
+            children: [
+              const Icon(
+                Icons.chair_alt,
+                color: AppTheme.mainGreen,
+                size: 20,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textDark,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingButton() {
+    return Center(
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.mainGreen.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FlightBookingScreen(
+                  flightId: widget.flightId,
+                ),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.mainGreen,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(
+              vertical: 16,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            elevation: 0,
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.airplane_ticket, size: 22),
+              SizedBox(width: 10),
+              Text(
+                'حجز الرحلة الآن',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // String _getAirportCode(String airportName) {
+  //   final words = airportName.split(' ');
+  //   if (words.length > 1) {
+  //     return '${words[0][0]}${words[1][0]}${words.length > 2 ? words[2][0] : ''}';
+  //   }
+  //   return words[0].substring(0, min(3, words[0].length)).toUpperCase();
+  // }
+
+  int min(int a, int b) => a < b ? a : b;
+
+  String _getFlightStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'scheduled':
+        return 'مجدولة';
+      case 'delayed':
+        return 'متأخرة';
+      case 'boarding':
+        return 'بدء الصعود';
+      case 'in-air':
+        return 'في الجو';
+      case 'landed':
+        return 'هبطت';
+      case 'cancelled':
+        return 'ملغاة';
+      default:
+        return status;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'scheduled':
+        return Colors.white;
+      case 'boarding':
+        return Colors.amber;
+      case 'in-air':
+        return Colors.lightBlueAccent;
+      case 'landed':
+        return Colors.green;
+      case 'delayed':
+        return Colors.deepOrange;
+      case 'cancelled':
+        return Colors.redAccent;
+      default:
+        return Colors.white;
+    }
   }
 }
