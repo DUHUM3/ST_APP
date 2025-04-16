@@ -32,29 +32,31 @@ class FlightService {
     }
   }
 
-  static Future<Map<String, dynamic>> bookFlight(Map<String, dynamic> bookingData) async {
-    String? accessToken = await TokenManager.getAccessToken();
+static Future<Map<String, dynamic>> bookFlight(Map<String, dynamic> bookingData) async {
+  String? accessToken = await TokenManager.getAccessToken();
 
-    if (accessToken == null) {
-      throw Exception('No access token found');
-    }
-
-    final response = await http.post(
-      Uri.parse('$baseUrl/bookings'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
-      body: jsonEncode(bookingData),
-    );
-
-    if (response.statusCode == 201) {
-      return jsonDecode(response.body); // Return the response after booking
-    } else {
-      throw Exception('Failed to book flight: ${response.statusCode} - ${response.body}');
-    }
-    
+  if (accessToken == null) {
+    throw Exception('الرجاء تسجيل الدخول');
   }
+
+  final response = await http.post(
+    Uri.parse('$baseUrl/bookings'),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $accessToken',
+    },
+    body: jsonEncode(bookingData),
+  );
+
+  if (response.statusCode == 201) {
+    return jsonDecode(response.body); // Return the response after booking
+  } else if (response.statusCode == 401) {
+    throw Exception('الرجاء تسجيل الدخول اولا');
+  } else {
+    throw Exception('حدث خطأ أثناء الحجز');
+  }
+}
+
     // دالة لجلب الرحلات المخفضة
   static Future<List<Map<String, dynamic>>> fetchDiscountedFlights() async {
     final response = await http.get(Uri.parse('$baseUrl/flights/discounted'));

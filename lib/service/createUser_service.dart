@@ -1,11 +1,19 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../screens/Settings Screens/Global.dart';
 import 'TokenManager.dart';
 
 class CreateUserService {
   static const String baseUrl = 'https://st-backend-si3x.onrender.com';
 
   static Future<Map<String, dynamic>> registerUser(Map<String, dynamic> userData) async {
+    // أضف fcmToken إلى بيانات المستخدم
+    if (globalFcmToken != null) {
+      userData['fcmToken'] = globalFcmToken;
+    } else {
+      print("تحذير: FCM Token غير متوفر");
+    }
+
     final response = await http.post(
       Uri.parse('$baseUrl/auth/register'),
       headers: {'Content-Type': 'application/json'},
@@ -13,16 +21,12 @@ class CreateUserService {
     );
 
     if (response.statusCode == 201) {
-      // إذا كانت العملية ناجحة، نقوم بتخزين التوكينز
       Map<String, dynamic> responseData = jsonDecode(response.body);
-      
       String accessToken = responseData['accessToken'];
       String refreshToken = responseData['refreshToken'];
 
-      // تخزين التوكينز باستخدام TokenManager
       await TokenManager.saveTokens(accessToken, refreshToken);
 
-      // طباعة التوكينز في الترمنال بعد نجاح العملية
       print('تم تسجيل المستخدم بنجاح');
       print('Access Token: $accessToken');
       print('Refresh Token: $refreshToken');

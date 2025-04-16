@@ -27,14 +27,14 @@ class FlightBookingScreen extends StatelessWidget {
               backgroundColor: Color(0xFFF5F6FA),
               automaticallyImplyLeading: true,
               flexibleSpace: FlexibleSpaceBar(
-                title: const Text(
-                  'اكتشف العالم',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 26,
-                  ),
-                ),
+                // title: const Text(
+                //   'اكتشف العالم',
+                //   style: TextStyle(
+                //     color: Colors.white,
+                //     fontWeight: FontWeight.bold,
+                //     fontSize: 26,
+                //   ),
+                // ),
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -102,7 +102,7 @@ class FlightBookingScreen extends StatelessWidget {
                   children: [
                     _buildSearchBox(context),
                     const SizedBox(height: 25),
-                    _buildQuickActions(),
+                    // _buildQuickActions(),
                     const SizedBox(height: 25),
                     _buildPopularFlights(context),
                     const SizedBox(height: 25),
@@ -200,61 +200,61 @@ Widget _buildSearchBox(BuildContext context) {
   );
 }
 
-  Widget _buildQuickActions() {
-    final actions = [
-      {'icon': Icons.flight, 'title': 'رحلات'},
-      {'icon': Icons.hotel, 'title': 'فنادق'},
-      {'icon': Icons.directions_car, 'title': 'سيارات'},
-      {'icon': Icons.card_giftcard, 'title': 'عروض'},
-    ];
+  // Widget _buildQuickActions() {
+  //   final actions = [
+  //     {'icon': Icons.flight, 'title': 'رحلات'},
+  //     {'icon': Icons.hotel, 'title': 'فنادق'},
+  //     {'icon': Icons.directions_car, 'title': 'سيارات'},
+  //     {'icon': Icons.card_giftcard, 'title': 'عروض'},
+  //   ];
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: actions.map((action) {
-        return Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white,
-                    Colors.white,
-                  ],
-                ),
-              ),
-              child: Icon(
-                action['icon'] as IconData,
-                color: mainGreen,
-                size: 30,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              action['title']! as String,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
-              ),
-            ),
-          ],
-        );
-      }).toList(),
-    );
-  }
+  //   return Row(
+  //     mainAxisAlignment: MainAxisAlignment.spaceAround,
+  //     children: actions.map((action) {
+  //       return Column(
+  //         children: [
+  //           Container(
+  //             padding: const EdgeInsets.all(15),
+  //             decoration: BoxDecoration(
+  //               color: Colors.white,
+  //               borderRadius: BorderRadius.circular(20),
+  //               boxShadow: [
+  //                 BoxShadow(
+  //                   color: Colors.grey.withOpacity(0.2),
+  //                   spreadRadius: 2,
+  //                   blurRadius: 8,
+  //                   offset: const Offset(0, 3),
+  //                 ),
+  //               ],
+  //               gradient: LinearGradient(
+  //                 begin: Alignment.topLeft,
+  //                 end: Alignment.bottomRight,
+  //                 colors: [
+  //                   Colors.white,
+  //                   Colors.white,
+  //                 ],
+  //               ),
+  //             ),
+  //             child: Icon(
+  //               action['icon'] as IconData,
+  //               color: mainGreen,
+  //               size: 30,
+  //             ),
+  //           ),
+  //           const SizedBox(height: 8),
+  //           Text(
+  //             action['title']! as String,
+  //             style: TextStyle(
+  //               fontSize: 14,
+  //               fontWeight: FontWeight.w600,
+  //               color: Colors.grey[800],
+  //             ),
+  //           ),
+  //         ],
+  //       );
+  //     }).toList(),
+  //   );
+  // }
 
  // تعديل دالة _buildPopularFlights
 Widget _buildPopularFlights(BuildContext context) {

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:st/theme/color.dart';
 
 import '../../service/createUser_service.dart';
+import '../NavigateBar.dart';
 
 class UserRegistrationScreen extends StatefulWidget {
   const UserRegistrationScreen({super.key});
@@ -18,19 +19,21 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   final TextEditingController _dobController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   String _selectedGender = 'ذكر';
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
 
-final List<String> _genderOptions = ['ذكر', 'أنثى'];
+  final List<String> _genderOptions = ['ذكر', 'أنثى'];
 
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl, // تغيير اتجاه الصفحة إلى اليمين إلى اليسار
+      textDirection:
+          TextDirection.rtl, // تغيير اتجاه الصفحة إلى اليمين إلى اليسار
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
@@ -52,24 +55,22 @@ final List<String> _genderOptions = ['ذكر', 'أنثى'];
                     color: Colors.green, // تغيير لون النص إلى الأخضر
                   ),
                 ),
-                
                 const SizedBox(height: 20),
-              _buildTextField(
-  controller: _nameController,
-  label: 'الاسم الكامل',
-  icon: Icons.person,
-  validator: (value) {
-    if (value == null || value.isEmpty) {
-      return 'يرجى إدخال الاسم الرباعي';
-    }
-    final words = value.trim().split(RegExp(r'\s+'));
-    if (words.length < 4) {
-      return 'الرجاء إدخال الاسم الرباعي كاملًا';
-    }
-    return null;
-  },
-),
-
+                _buildTextField(
+                  controller: _nameController,
+                  label: 'الاسم الكامل',
+                  icon: Icons.person,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'يرجى إدخال الاسم الرباعي';
+                    }
+                    final words = value.trim().split(RegExp(r'\s+'));
+                    if (words.length < 4) {
+                      return 'الرجاء إدخال الاسم الرباعي كاملًا';
+                    }
+                    return null;
+                  },
+                ),
                 _buildTextField(
                   controller: _emailController,
                   label: 'البريد الإلكتروني',
@@ -103,60 +104,64 @@ final List<String> _genderOptions = ['ذكر', 'أنثى'];
                   controller: _passwordController,
                   label: 'كلمة المرور',
                   isVisible: _isPasswordVisible,
-                  onVisibilityChanged: (value) => setState(() => _isPasswordVisible = value),
+                  onVisibilityChanged: (value) =>
+                      setState(() => _isPasswordVisible = value),
                 ),
                 _buildPasswordField(
                   controller: _confirmPasswordController,
                   label: 'تأكيد كلمة المرور',
                   isVisible: _isConfirmPasswordVisible,
-                  onVisibilityChanged: (value) => setState(() => _isConfirmPasswordVisible = value),
+                  onVisibilityChanged: (value) =>
+                      setState(() => _isConfirmPasswordVisible = value),
                 ),
                 const SizedBox(height: 30),
                 SizedBox(
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
-                  onPressed: () async {
-void _showMessageDialog(
-  BuildContext context, {
-  required String title,
-  required String message,
-  required IconData icon,
-  required Color iconColor,
-}) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(icon, color: iconColor, size: 30),
-            const SizedBox(width: 10),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: iconColor,
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          message,
-          style: const TextStyle(fontSize: 16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('موافق', style: TextStyle(fontSize: 16)),
-          ),
-        ],
-      );
-    },
-  );
-}
+                    onPressed: () async {
+                      void _showMessageDialog(
+                        BuildContext context, {
+                        required String title,
+                        required String message,
+                        required IconData icon,
+                        required Color iconColor,
+                      }) {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                              title: Row(
+                                children: [
+                                  Icon(icon, color: iconColor, size: 30),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    title,
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: iconColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              content: Text(
+                                message,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('موافق',
+                                      style: TextStyle(fontSize: 16)),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      }
 
   if (_formKey.currentState!.validate()) {
     final userData = {
@@ -168,56 +173,60 @@ void _showMessageDialog(
       "address": _addressController.text,
       "password": _passwordController.text,
     };
-//الرساله 
-try {
-  final response = await CreateUserService.registerUser(userData);
-  if (response != null && response.containsKey('message')) {
-    // عرض الرسالة الناجحة باستخدام Get.snackbar
-    Get.snackbar(
-      'تم التسجيل بنجاح',
-      response['message'],
-      icon: Icon(Icons.check_circle, color: Colors.green),
-      snackPosition: SnackPosition.TOP, // تظهر الرسالة من الأعلى
-      colorText: Colors.black, // لون النص
-      duration: Duration(seconds: 3), // مدة عرض الرسالة
-    );
-  } else {
-    // عرض رسالة خطأ غير متوقع
-    Get.snackbar(
-      'خطأ غير متوقع',
-      'لم يتم استلام رسالة من الخادم.',
-      icon: Icon(Icons.warning, color: Colors.blue), // تعديل اللون إلى الأزرق
-      snackPosition: SnackPosition.TOP, // تظهر الرسالة من الأعلى
-      colorText: Colors.black, // لون النص
-      duration: Duration(seconds: 3), // مدة عرض الرسالة
-    );
-  }
-} catch (e) {
-  // عرض رسالة خطأ باستخدام Get.snackbar
-  Get.snackbar(
-    'خطأ',
-    e.toString(), // عرض نص الخطأ فقط
-    snackPosition: SnackPosition.TOP, // تظهر الرسالة من الأعلى
-    colorText: Colors.black, // لون النص
-    duration: Duration(seconds: 3), // مدة عرض الرسالة
-  );
-}
 
-
-
+    try {
+      final response = await CreateUserService.registerUser(userData);
+      if (response != null && response.containsKey('message')) {
+        // عرض رسالة النجاح
+        Get.snackbar(
+          'تم التسجيل بنجاح',
+          response['message'],
+          icon: Icon(Icons.check_circle, color: Colors.green),
+          snackPosition: SnackPosition.TOP,
+          colorText: Colors.black,
+          duration: Duration(seconds: 3),
+        );
+        
+        // الانتقال إلى الشاشة الرئيسية بعد التأخير
+        Future.delayed(Duration(seconds: 2), () {
+          Get.offAll(() => HomePage()); // استبدل HomeScreen بشاشتك الرئيسية
+        });
+      } else {
+        Get.snackbar(
+          'خطأ غير متوقع',
+          'لم يتم استلام رسالة من الخادم.',
+          icon: Icon(Icons.warning, color: Colors.blue),
+          snackPosition: SnackPosition.TOP,
+          colorText: Colors.black,
+          duration: Duration(seconds: 3),
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'خطأ',
+        e.toString(),
+        snackPosition: SnackPosition.TOP,
+        colorText: Colors.black,
+        duration: Duration(seconds: 3),
+      );
+    }
   }
 },
 
-
+                    
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
-                      backgroundColor: Colors.green, // تغيير لون الزر إلى الأخضر
+                      backgroundColor:
+                          Colors.green, // تغيير لون الزر إلى الأخضر
                     ),
                     child: const Text(
                       'إنشاء الحساب',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
                     ),
                   ),
                 ),
@@ -256,21 +265,24 @@ try {
         keyboardType: keyboardType,
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: Colors.green), // تغيير لون الأيقونة إلى الأخضر
+          prefixIcon:
+              Icon(icon, color: Colors.green), // تغيير لون الأيقونة إلى الأخضر
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: BorderSide.none,
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
-        validator: validator ?? (value) {
-          if (value == null || value.isEmpty) {
-            return 'يرجى إدخال $label';
-          }
-          return null;
-        },
+        validator: validator ??
+            (value) {
+              if (value == null || value.isEmpty) {
+                return 'يرجى إدخال $label';
+              }
+              return null;
+            },
       ),
     );
   }
@@ -301,7 +313,8 @@ try {
         obscureText: !isVisible,
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: const Icon(Icons.lock, color: Colors.green), // تغيير لون الأيقونة إلى الأخضر
+          prefixIcon: const Icon(Icons.lock,
+              color: Colors.green), // تغيير لون الأيقونة إلى الأخضر
           suffixIcon: IconButton(
             icon: Icon(
               isVisible ? Icons.visibility : Icons.visibility_off,
@@ -315,14 +328,16 @@ try {
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
-        validator: validator ?? (value) {
-          if (value == null || value.isEmpty) {
-            return 'يرجى إدخال $label';
-          }
-          return null;
-        },
+        validator: validator ??
+            (value) {
+              if (value == null || value.isEmpty) {
+                return 'يرجى إدخال $label';
+              }
+              return null;
+            },
       ),
     );
   }
@@ -347,14 +362,16 @@ try {
         readOnly: true,
         decoration: InputDecoration(
           labelText: 'تاريخ الميلاد',
-          prefixIcon: const Icon(Icons.calendar_today, color: Colors.green), // تغيير لون الأيقونة إلى الأخضر
+          prefixIcon: const Icon(Icons.calendar_today,
+              color: Colors.green), // تغيير لون الأيقونة إلى الأخضر
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: BorderSide.none,
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
         onTap: () async {
           final DateTime? picked = await showDatePicker(
@@ -398,14 +415,16 @@ try {
         value: _selectedGender,
         decoration: InputDecoration(
           labelText: 'الجنس',
-          prefixIcon: const Icon(Icons.people, color: Colors.green), // تغيير لون الأيقونة إلى الأخضر
+          prefixIcon: const Icon(Icons.people,
+              color: Colors.green), // تغيير لون الأيقونة إلى الأخضر
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: BorderSide.none,
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
         items: _genderOptions.map((String gender) {
           return DropdownMenuItem<String>(

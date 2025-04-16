@@ -149,11 +149,12 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
       ),
     );
   }
-
- Widget _buildFlightHeader(Map<String, dynamic> flight) {
-  String formatTime(String isoTime) {
+Widget _buildFlightHeader(Map<String, dynamic> flight) {
+  String formatDateTime(String isoTime) {
     final dateTime = DateTime.parse(isoTime);
-    return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    final date = '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
+    final time = '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    return '$date\n$time';
   }
 
   return Container(
@@ -201,7 +202,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildTimeColumn('المغادرة', formatTime(flight['departureTime'])),
+            _buildDateTimeColumn('المغادرة', formatDateTime(flight['departureTime'])),
             Text(
               _getFlightStatus(flight['status']),
               style: TextStyle(
@@ -210,11 +211,37 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            _buildTimeColumn('الوصول', formatTime(flight['arrivalTime'])),
+            _buildDateTimeColumn('الوصول', formatDateTime(flight['arrivalTime'])),
           ],
         ),
       ],
     ),
+  );
+}
+
+Widget _buildDateTimeColumn(String title, String dateTime) {
+  final parts = dateTime.split('\n');
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+      const SizedBox(height: 5),
+      Text(
+        parts[1], // الوقت
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      Text(
+        parts[0], // التاريخ
+        style: const TextStyle(
+          color: Colors.white70,
+          fontSize: 12,
+        ),
+      ),
+    ],
   );
 }
 

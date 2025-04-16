@@ -30,7 +30,7 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
 
   Future<void> _loadHospitals() async {
     try {
-      final hospitalsData = await ApiManager.getHospitals();
+      final hospitalsData = await HospitalService.getHospitals();
 
       if (hospitalsData != null) {
         setState(() {
@@ -42,7 +42,8 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
           isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل في تحميل البيانات: البيانات فارغة')),
+          const SnackBar(
+              content: Text('فشل في تحميل البيانات: البيانات فارغة')),
         );
       }
     } catch (e) {
@@ -139,24 +140,6 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
               ),
             ],
           ),
-          Container(
-            height: 50,
-            width: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.notifications_none_rounded,
-              color: Colors.black87,
-            ),
-          ),
         ],
       ),
     );
@@ -194,7 +177,8 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
             ),
           ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         ),
         onChanged: (value) {
           setState(() {
@@ -216,7 +200,7 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
           _buildCategoryTab('الكل', 'الكل'),
           _buildCategoryTab('عام', 'general'),
           _buildCategoryTab('متخصص', 'specialized'),
-          _buildCategoryTab('أطباء', 'أطباء'),
+          // _buildCategoryTab('أطباء', 'أطباء'),
         ],
       ),
     );
@@ -265,10 +249,13 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
 
   Widget _buildHospitalsList() {
     List<Map<String, dynamic>> filteredHospitals = hospitals.where((hospital) {
-      bool categoryMatch = _selectedFilter == 'الكل' || hospital["type"] == _selectedFilter;
-      bool searchMatch = _searchQuery.isEmpty || 
-          hospital["name"].toLowerCase().contains(_searchQuery.toLowerCase()) || 
-          hospital["address"].toLowerCase().contains(_searchQuery.toLowerCase());
+      bool categoryMatch =
+          _selectedFilter == 'الكل' || hospital["type"] == _selectedFilter;
+      bool searchMatch = _searchQuery.isEmpty ||
+          hospital["name"].toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          hospital["address"]
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase());
       return categoryMatch && searchMatch;
     }).toList();
 
@@ -318,7 +305,8 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => HospitalDetailsScreen(hospitalId: hospital["id"]),
+            builder: (context) =>
+                HospitalDetailsScreen(hospitalId: hospital["id"]),
           ),
         );
       },
@@ -343,7 +331,7 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
                 bottomRight: Radius.circular(25),
               ),
               child: Image.network(
-                '${ApiManager.baseUrl}/${hospital["logo"]}',
+                hospital["logo"], // Use the logo URL directly
                 width: 120,
                 height: 120,
                 fit: BoxFit.cover,
@@ -387,11 +375,11 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
                             color: Colors.grey[100],
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.favorite_border,
-                            color: AppColors.red,
-                            size: 18,
-                          ),
+                          // child: const Icon(
+                          //   Icons.favorite_border,
+                          //   color: AppColors.red,
+                          //   size: 18,
+                          // ),
                         ),
                       ],
                     ),

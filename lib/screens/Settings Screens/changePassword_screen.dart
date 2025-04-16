@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart'; // تأكد من إضافة هذا
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -19,6 +19,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   String? token;
+  bool _showCurrentPassword = false;
+  bool _showNewPassword = false;
+  bool _showConfirmPassword = false;
 
   @override
   void initState() {
@@ -92,71 +95,123 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.green,
         elevation: 0,
+        leading: Container(), // إزالة أيقونة الرجوع الافتراضية
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: IconButton(
+              icon: Transform.flip(
+                flipX: true, // قلب الأيقونة أفقيًا
+                child: const Icon(Icons.arrow_back, color: Colors.black),
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ],
       ),
-      body: Container(
-        color: Colors.white,
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  Card(
-                    elevation: 5,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        children: [
-                          _buildPasswordField(_currentPasswordController, "كلمة المرور الحالية", Icons.lock),
-                          const SizedBox(height: 20),
-                          _buildPasswordField(_newPasswordController, "كلمة المرور الجديدة", Icons.lock_outline),
-                          const SizedBox(height: 20),
-                          TextFormField(
-                            controller: _confirmPasswordController,
-                            obscureText: true,
-                            decoration: _inputDecoration("تأكيد كلمة المرور الجديدة", Icons.lock_outline),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "يرجى تأكيد كلمة المرور الجديدة";
-                              }
-                              if (value != _newPasswordController.text) {
-                                return "كلمة المرور غير متطابقة";
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          color: Colors.white,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    Card(
+                      elevation: 5,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          children: [
+                            _buildPasswordField(
+                              _currentPasswordController,
+                              "كلمة المرور الحالية",
+                              Icons.lock,
+                              _showCurrentPassword,
+                              (value) {
+                                setState(() {
+                                  _showCurrentPassword = value;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            _buildPasswordField(
+                              _newPasswordController,
+                              "كلمة المرور الجديدة",
+                              Icons.lock_outline,
+                              _showNewPassword,
+                              (value) {
+                                setState(() {
+                                  _showNewPassword = value;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            _buildPasswordField(
+                              _confirmPasswordController,
+                              "تأكيد كلمة المرور الجديدة",
+                              Icons.lock_outline,
+                              _showConfirmPassword,
+                              (value) {
+                                setState(() {
+                                  _showConfirmPassword = value;
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return "يرجى تأكيد كلمة المرور الجديدة";
+                                }
+                                if (value != _newPasswordController.text) {
+                                  return "كلمة المرور غير متطابقة";
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 30),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: _isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
-                        : ElevatedButton(
-                            onPressed: _changePassword,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4CAF50),
-                              elevation: 5,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: _isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: Color(0xFF4CAF50)))
+                          : ElevatedButton(
+                              onPressed: _changePassword,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF4CAF50),
+                                elevation: 5,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.lock_reset, color: Colors.white),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    "تغيير كلمة المرور",
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ],
+                              ),
                             ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.lock_reset, color: Colors.white),
-                                SizedBox(width: 10),
-                                Text("تغيير كلمة المرور", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                              ],
-                            ),
-                          ),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -165,28 +220,47 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 
-  Widget _buildPasswordField(TextEditingController controller, String label, IconData icon) {
+  Widget _buildPasswordField(
+    TextEditingController controller,
+    String label,
+    IconData icon,
+    bool showPassword,
+    Function(bool) onEyePressed, {
+    String? Function(String?)? validator,
+  }) {
     return TextFormField(
       controller: controller,
-      obscureText: true,
-      decoration: _inputDecoration(label, icon),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return "يرجى إدخال $label";
-        }
-        if (label == "كلمة المرور الجديدة" && value.length < 6) {
-          return "كلمة المرور يجب أن تكون على الأقل 6 أحرف";
-        }
-        return null;
-      },
+      obscureText: !showPassword,
+      decoration: _inputDecoration(label, icon, showPassword, onEyePressed),
+      validator: validator ??
+          (value) {
+            if (value == null || value.isEmpty) {
+              return "يرجى إدخال $label";
+            }
+            if (label == "كلمة المرور الجديدة" && value.length < 6) {
+              return "كلمة المرور يجب أن تكون على الأقل 6 أحرف";
+            }
+            return null;
+          },
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
+  InputDecoration _inputDecoration(
+    String label,
+    IconData icon,
+    bool showPassword,
+    Function(bool) onEyePressed,
+  ) {
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(color: Color(0xFF4CAF50)),
       prefixIcon: Icon(icon, color: const Color(0xFF4CAF50)),
+      suffixIcon: IconButton(
+        icon: Icon(
+          showPassword ? Icons.visibility : Icons.visibility_off,
+          color: const Color(0xFF4CAF50)),
+        onPressed: () => onEyePressed(!showPassword),
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: Colors.grey.shade300),

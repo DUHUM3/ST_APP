@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../service/flight_service.dart';
 import '../../theme/color.dart';
 import 'flightDetail_screen.dart';
@@ -17,10 +18,7 @@ class _FlightBookingScreenState extends State<FlightBookingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _seatNumberController = TextEditingController();
   final _passportNumberController = TextEditingController();
-  String _selectedClass = 'Economy';
   bool _isLoading = false;
-
-  final List<String> _classes = ['Economy', 'Business', 'FirstClass'];
 
   @override
   Widget build(BuildContext context) {
@@ -76,18 +74,23 @@ class _FlightBookingScreenState extends State<FlightBookingScreen> {
                             controller: _seatNumberController,
                             decoration: InputDecoration(
                               labelText: 'رقم المقعد',
-                              prefixIcon: const Icon(Icons.airline_seat_recline_normal, color: AppTheme.mainGreen),
+                              prefixIcon: const Icon(
+                                  Icons.airline_seat_recline_normal,
+                                  color: AppTheme.mainGreen),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: AppTheme.mainGreen),
+                                borderSide:
+                                    const BorderSide(color: AppTheme.mainGreen),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide:
+                                    BorderSide(color: Colors.grey[300]!),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: AppTheme.mainGreen),
+                                borderSide:
+                                    const BorderSide(color: AppTheme.mainGreen),
                               ),
                             ),
                             validator: (value) {
@@ -98,51 +101,24 @@ class _FlightBookingScreenState extends State<FlightBookingScreen> {
                             },
                           ),
                           const SizedBox(height: 20),
-                          DropdownButtonFormField<String>(
-                            value: _selectedClass,
-                            items: _classes.map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedClass = value!;
-                              });
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'الفئة السعرية',
-                              prefixIcon: const Icon(Icons.class_, color: AppTheme.mainGreen),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: AppTheme.mainGreen),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
                           TextFormField(
                             controller: _passportNumberController,
                             decoration: InputDecoration(
                               labelText: 'رقم الجواز',
-                              prefixIcon: const Icon(Icons.document_scanner, color: AppTheme.mainGreen),
+                              prefixIcon: const Icon(Icons.document_scanner,
+                                  color: AppTheme.mainGreen),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide:
+                                    BorderSide(color: Colors.grey[300]!),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: AppTheme.mainGreen),
+                                borderSide:
+                                    const BorderSide(color: AppTheme.mainGreen),
                               ),
                             ),
                             validator: (value) {
@@ -160,7 +136,8 @@ class _FlightBookingScreenState extends State<FlightBookingScreen> {
                   Center(
                     child: _isLoading
                         ? const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.mainGreen),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                AppTheme.mainGreen),
                           )
                         : Column(
                             children: [
@@ -169,7 +146,8 @@ class _FlightBookingScreenState extends State<FlightBookingScreen> {
                                   final selectedSeat = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => SeatMapScreen(flightId: widget.flightId),
+                                      builder: (context) => SeatMapScreen(
+                                          flightId: widget.flightId),
                                     ),
                                   );
 
@@ -193,7 +171,10 @@ class _FlightBookingScreenState extends State<FlightBookingScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: const [
-                                    Icon(Icons.airline_seat_recline_normal_outlined, color: Colors.white),
+                                    Icon(
+                                        Icons
+                                            .airline_seat_recline_normal_outlined,
+                                        color: Colors.white),
                                     SizedBox(width: 10),
                                     Text(
                                       'عرض خريطة المقاعد',
@@ -222,7 +203,8 @@ class _FlightBookingScreenState extends State<FlightBookingScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: const [
-                                    Icon(Icons.check_circle_outline, color: Colors.white),
+                                    Icon(Icons.check_circle_outline,
+                                        color: Colors.white),
                                     SizedBox(width: 10),
                                     Text(
                                       'تأكيد الحجز',
@@ -255,45 +237,34 @@ class _FlightBookingScreenState extends State<FlightBookingScreen> {
       final bookingData = {
         "flight": widget.flightId,
         "seatNumber": _seatNumberController.text,
-        "class": _selectedClass,
-        "price": _getPriceForClass(_selectedClass),
         "passportNumber": _passportNumberController.text,
       };
 
       try {
         await FlightService.bookFlight(bookingData);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم حجز الرحلة بنجاح!'),
-            backgroundColor: AppTheme.mainGreen,
-          ),
+        Get.snackbar(
+          'نجاح',
+          'تم حجز الرحلة بنجاح!',
+          icon: const Icon(Icons.check_circle, color: Colors.green),
+          snackPosition: SnackPosition.TOP,
+          colorText: Colors.black,
+          duration: const Duration(seconds: 3),
         );
         Navigator.pop(context);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('فشل في حجز الرحلة: $e'),
-            backgroundColor: Colors.red,
-          ),
+        Get.snackbar(
+          'خطأ',
+          ' ${e.toString()}',
+          icon: const Icon(Icons.warning, color: Colors.red),
+          snackPosition: SnackPosition.TOP,
+          colorText: Colors.black,
+          duration: const Duration(seconds: 3),
         );
       } finally {
         setState(() {
           _isLoading = false;
         });
       }
-    }
-  }
-
-  double _getPriceForClass(String selectedClass) {
-    switch (selectedClass) {
-      case 'Economy':
-        return 200;
-      case 'Business':
-        return 500;
-      case 'FirstClass':
-        return 1000;
-      default:
-        return 0;
     }
   }
 }

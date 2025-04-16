@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "599379277705",
-    "project_id": "st12-46f58",
-    "storage_bucket": "st12-46f58.firebasestorage.app"
+    "project_number": "668637419073",
+    "project_id": "stapp-f2dbc",
+    "storage_bucket": "stapp-f2dbc.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:599379277705:android:4c7a8b58974ffdd226d358",
+        "mobilesdk_app_id": "1:668637419073:android:68fe127c562a0ea9f3d8c0",
         "android_client_info": {
           "package_name": "com.example.st"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAuYrCWTsvhPInO4yDjUzbzEZDw205d974"
+          "current_key": "AIzaSyAtMC3YMVhSiDn_C6YRtoyJN8TtyCqUuZo"
         }
       ],
       "services": {

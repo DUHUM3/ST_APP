@@ -18,7 +18,7 @@ class _HomePageState extends State<HomePage> {
 
   // قائمة الشاشات
   final List<Widget> _screens = [
-    const BookingsScreen(), // شاشة الحجوزات
+    const CombinedBookingsScreen(), // شاشة الحجوزات
     ServiceScreen(), // الشاشة الرئيسية
     ProfileScreen(), // شاشة البروفيل
   ];
@@ -83,16 +83,16 @@ class _HomePageState extends State<HomePage> {
   child: Row(
     children: [
       // أيقونة الإشعارات
-      IconButton(
-        icon: const Icon(Icons.notifications, color: Colors.black),
-        onPressed: () {
+      // IconButton(
+      //   icon: const Icon(Icons.notifications, color: Colors.black),
+      //   onPressed: () {
           // الانتقال إلى صفحة الإشعارات
           // Navigator.push(
           //   context,
           //   MaterialPageRoute(builder: (context) => Firebasemessaging()),
           // );
-        },
-      ),
+      //   },
+      // ),
       const SizedBox(width: 10), // مسافة بين الأيقونتين
       // أيقونة القائمة الجانبية
       Builder(

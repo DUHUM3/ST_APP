@@ -1,30 +1,80 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:st/theme/color.dart';
-import 'dart:ui';
-import 'restaurantDetail_screen.dart'; // تأكد من أن هذا الملف موجود
+import '../../service/restaurants_service.dart';
+import 'restaurantDetail_screen.dart';
 
 class Restaurant {
+  final String id;
   final String name;
-  final String image;
-  final double rating;
-  final String location;
-  final int seats;
-  final List<String> cuisines;
+  final String type;
+  final String address;
+  final String cuisines;
+  final String logo;
+  final double averageRating;
   final String description;
-  final bool isPromoted;
+  final int totalReviews;
+  final List<String> images;
 
   Restaurant({
+    required this.id,
     required this.name,
-    required this.image,
-    required this.rating,
-    required this.location,
-    required this.seats,
+    required this.type,
+    required this.address,
     required this.cuisines,
+    required this.logo,
+    required this.averageRating,
     required this.description,
-    this.isPromoted = false,
+    required this.totalReviews,
+    required this.images,
   });
+
+  factory Restaurant.fromJson(Map<String, dynamic> json) {
+    final restaurantData = json['restaurant'] ?? json;
+    // final baseUrl = 'https://st-backend-si3x.onrender.com';
+
+    // معالجة مسار الشعار
+    String logo = restaurantData['logo'] ?? '';
+    if (logo.isNotEmpty) {
+      if (!logo.startsWith('http')) {
+        // إزالة أي شرطة مائلة زائدة
+        logo = logo.startsWith('/') ? logo.substring(1) : logo;
+        logo = '$logo';
+      }
+      // استبدال المسارات غير الصحيحة إذا لزم الأمر
+      logo = logo.replaceAll('//', '/').replaceAll(':/', '://');
+    }
+
+    // معالجة مسارات الصور
+    List<String> images = [];
+    if (restaurantData['images'] != null) {
+      images = List<String>.from(restaurantData['images'].map((image) {
+        if (image.isNotEmpty && !image.startsWith('http')) {
+          image = image.startsWith('/') ? image.substring(1) : image;
+          image = '$image';
+        }
+        return image.replaceAll('//', '/').replaceAll(':/', '://');
+      }));
+    }
+
+    return Restaurant(
+      id: restaurantData['_id'] ?? '',
+      name: restaurantData['name'] ?? 'Unknown',
+      type: restaurantData['type'] ?? 'Unknown',
+      address: restaurantData['address'] ?? 'Unknown',
+      cuisines: restaurantData['cuisines'] ?? '',
+      logo: logo,
+      averageRating: (restaurantData['averageRating'] ?? json['averageRating'])
+              ?.toDouble() ??
+          0.0,
+      description: restaurantData['description'] ?? '',
+      totalReviews: restaurantData['totalReviews'] ?? json['totalReviews'] ?? 0,
+      images: images,
+    );
+  }
 }
 
 class RestaurantsScreen extends StatefulWidget {
@@ -34,306 +84,264 @@ class RestaurantsScreen extends StatefulWidget {
   _RestaurantsScreenState createState() => _RestaurantsScreenState();
 }
 
-class _RestaurantsScreenState extends State<RestaurantsScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _RestaurantsScreenState extends State<RestaurantsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String _selectedFilter = 'All';
+  String _selectedFilter = 'الكل';
 
-  // تعريف قائمة المطاعم
-  final List<Restaurant> restaurants = [
-    Restaurant(
-      name: 'Red Sea Restaurant',
-      image: 'https://picsum.photos/300?random=1&food', // صورة طعام
-      rating: 4.5,
-      location: 'Jeddah, Saudi Arabia',
-      seats: 120,
-      cuisines: ['Seafood', 'Mediterranean', 'Grill'],
-      description: 'A luxurious restaurant overlooking the Red Sea with premium services and stunning views.',
-      isPromoted: true,
-    ),
-    Restaurant(
-      name: 'Green Mountain Restaurant',
-      image: 'https://picsum.photos/300?random=2&pizza', // صورة بيتزا
-      rating: 4.2,
-      location: 'Riyadh, Saudi Arabia',
-      seats: 90,
-      cuisines: ['Arabic', 'International', 'Vegetarian'],
-      description: 'A modern restaurant in the heart of the capital with state-of-the-art facilities and diverse cuisines.',
-    ),
-    Restaurant(
-      name: 'Old City Restaurant',
-      image: 'https://picsum.photos/300?random=3&burger', // صورة برجر
-      rating: 4.0,
-      location: 'Mecca, Saudi Arabia',
-      seats: 80,
-      cuisines: ['Traditional', 'Arabic', 'Desserts'],
-      description: 'A restaurant offering a unique experience in the heart of the old city.',
-    ),
-    Restaurant(
-      name: 'Golden Beach Restaurant',
-      image: 'https://picsum.photos/300?random=4&sushi', // صورة سوشي
-      rating: 4.7,
-      location: 'Dammam, Saudi Arabia',
-      seats: 150,
-      cuisines: ['Seafood', 'International', 'Fusion'],
-      description: 'A luxurious beachfront restaurant with breathtaking sea views.',
-    ),
+  // قائمة الفلاتر الجديدة
+  final List<Map<String, String>> filters = [
+    {'title': 'الكل', 'value': 'الكل'},
+    {'title': 'وجبات سريعة', 'value': 'fast_food'},
+    {'title': 'مطاعم عادية', 'value': 'casual_dining'},
+    {'title': 'مطاعم فاخرة', 'value': 'fine_dining'},
+    // {'title': 'مأكولات بحرية', 'value': 'seafood'},
+    // {'title': 'مشاوي', 'value': 'grill'},
+    // {'title': 'عربية', 'value': 'arabic'},
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-  }
+  Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+    );
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      height: 300,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: NetworkImage('https://picsum.photos/1200/800?random=5&restaurant'), // صورة مطعم
-          fit: BoxFit.cover,
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildAppBar(),
+              _buildSearchBar(),
+              _buildCategoryTabs(),
+              Expanded(
+                child: FutureBuilder<List<Restaurant>>(
+                  future: RestaurantApi.fetchRestaurants(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('خطأ: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(child: Text('لا توجد مطاعم متاحة'));
+                    } else {
+                      final restaurants = snapshot.data!;
+                      return _buildRestaurantsList(restaurants);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      child: Stack(
+    );
+  }
+
+  Widget _buildAppBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 15, 20, 5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Gradient overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.3),
-                  Colors.black.withOpacity(0.7),
-                ],
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
               ),
-            ),
-          ),
-          // Content
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
+              const SizedBox(width: 15),
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Spacer(),
                   Text(
-                    'Find your perfect',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
+                    'المطاعم',
+                    style: GoogleFonts.tajawal(
                       fontSize: 24,
-                      fontWeight: FontWeight.w300,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                   Text(
-                    'Luxury Restaurant',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Search bar with glass effect
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(15),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.search, color: Colors.white),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  hintText: 'Search restaurants...',
-                                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-                                  border: InputBorder.none,
-                                ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _searchQuery = value;
-                                  });
-                                },
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.filter_list, color: Colors.white),
-                              onPressed: () => _showFilterBottomSheet(context),
-                            ),
-                          ],
-                        ),
-                      ),
+                    'ابحث عن أفضل المطاعم القريبة',
+                    style: GoogleFonts.tajawal(
+                      fontSize: 13,
+                      color: Colors.grey[600],
                     ),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCategories() {
+  Widget _buildSearchBar() {
     return Container(
-      height: 50,
-      margin: const EdgeInsets.symmetric(vertical: 20),
+      margin: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'ابحث عن مطعم...',
+          hintStyle: TextStyle(color: Colors.grey[400]),
+          prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+          suffixIcon: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.tune,
+              color: AppColors.red,
+              size: 20,
+            ),
+          ),
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        ),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildCategoryTabs() {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      height: 45,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          _buildCategoryChip('All', Icons.restaurant),
-          _buildCategoryChip('Fine Dining', Icons.star),
-          _buildCategoryChip('Fast Food', Icons.fastfood),
-          _buildCategoryChip('Cafe', Icons.local_cafe),
-          _buildCategoryChip('Bar', Icons.local_bar),
-        ],
+        children: filters.map((filter) {
+          return _buildCategoryTab(filter['title']!, filter['value']!);
+        }).toList(),
       ),
     );
   }
 
-  Widget _buildCategoryChip(String label, IconData icon) {
-    final isSelected = _selectedFilter == label;
-    return Padding(
-      padding: const EdgeInsets.only(right: 10),
-      child: FilterChip(
-        selected: isSelected,
-        label: Row(
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? Colors.white : Colors.grey,
-            ),
-            const SizedBox(width: 8),
-            Text(label),
+  Widget _buildCategoryTab(String title, String value) {
+    final isSelected = _selectedFilter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = value;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.red : Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            if (isSelected)
+              BoxShadow(
+                color: AppColors.red.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            if (!isSelected)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+              ),
           ],
         ),
-        backgroundColor: Colors.white,
-        selectedColor: AppColors.primaryColor,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black,
-          fontWeight: FontWeight.bold,
+        alignment: Alignment.center,
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        onSelected: (bool selected) {
-          setState(() {
-            _selectedFilter = selected ? label : 'All';
-          });
-        },
-        elevation: 2,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
     );
   }
 
-  void _showFilterBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.5,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 10),
-              height: 4,
-              width: 40,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Text(
-                    'Filter Restaurants',
-                    style: GoogleFonts.poppins(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // يمكن إضافة فلاتر أخرى هنا
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:AppColors.primaryColor,
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+  Widget _buildRestaurantsList(List<Restaurant> restaurants) {
+    List<Restaurant> filteredRestaurants = restaurants.where((restaurant) {
+      bool categoryMatch = _selectedFilter == 'الكل' ||
+          restaurant.type.toLowerCase().contains(_selectedFilter.toLowerCase());
+      bool searchMatch = _searchQuery.isEmpty ||
+          restaurant.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          restaurant.address.toLowerCase().contains(_searchQuery.toLowerCase());
+      return categoryMatch && searchMatch;
+    }).toList();
+
+    return filteredRestaurants.isEmpty
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.search_off,
+                  size: 60,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'لا توجد نتائج',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[600],
                   ),
                 ),
-                child: const Text('Apply Filters'),
-              ),
+                const SizedBox(height: 10),
+                Text(
+                  'حاول تغيير مصطلحات البحث',
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 250,
-            floating: false,
-            pinned: true,
-            snap: false,
-            automaticallyImplyLeading: false,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _buildHeader(),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: _buildCategories(),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: _buildRestaurantCard(restaurants[index]),
-              ),
-              childCount: restaurants.length,
-            ),
-          ),
-        ],
-      ),
-    );
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+            itemCount: filteredRestaurants.length,
+            itemBuilder: (context, index) {
+              return _buildRestaurantCard(filteredRestaurants[index]);
+            },
+          );
   }
 
   Widget _buildRestaurantCard(Restaurant restaurant) {
@@ -342,7 +350,8 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> with SingleTicker
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => RestaurantDetailScreen(restaurant: restaurant),
+            builder: (context) =>
+                RestaurantDetailScreen(restaurant: restaurant),
           ),
         );
       },
@@ -350,176 +359,146 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> with SingleTicker
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(25),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
               offset: const Offset(0, 5),
             ),
           ],
         ),
-        child: Column(
+        child: Row(
           children: [
-            // Restaurant Image with Overlay
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  child: Image.network(
-                    restaurant.image,
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                              : null,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                if (restaurant.isPromoted)
-                  Positioned(
-                    top: 20,
-                    left: 20,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'Featured',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.8),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+         ClipRRect(
+  borderRadius: const BorderRadius.only(
+    topRight: Radius.circular(25),
+    bottomRight: Radius.circular(25),
+  ),
+  child: CachedNetworkImage(
+    imageUrl: restaurant.logo,
+    width: 120,
+    height: 120,
+    fit: BoxFit.cover,
+    placeholder: (context, url) => Container(
+      color: Colors.grey[300],
+      child: const Center(child: CircularProgressIndicator()),
+    ),
+    errorWidget: (context, url, error) => Container(
+      color: Colors.grey[300],
+      child: const Icon(Icons.image_not_supported, color: Colors.grey),
+    ),
+  ),
+),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          restaurant.name,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, color: Colors.white, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              restaurant.location,
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            // Restaurant Details
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 20),
-                          const SizedBox(width: 4),
-                          Text(
-                            restaurant.rating.toString(),
-                            style: const TextStyle(
+                        Expanded(
+                          child: Text(
+                            restaurant.name,
+                            style: GoogleFonts.cairo(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            '${restaurant.seats} Seats',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  Text(
-                    restaurant.description,
-                    style: TextStyle(color: Colors.grey[600]),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: restaurant.cuisines.map((cuisine) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color:AppColors.primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          cuisine,
-                          style: const TextStyle(
-                            color: AppColors.primaryColor,
-                            fontSize: 12,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:AppColors.primaryColor,
-                      minimumSize: const Size.fromHeight(50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            shape: BoxShape.circle,
+                          ),
+                          // child: const Icon(
+                          //   Icons.favorite_border,
+                          //   color: AppColors.red,
+                          //   size: 18,
+                          // ),
+                        ),
+                      ],
                     ),
-                    child: const Text('Reserve Now'),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.grey,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            restaurant.address,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Colors.amber,
+                                size: 12,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                restaurant.averageRating.toString(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            restaurant.type,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
